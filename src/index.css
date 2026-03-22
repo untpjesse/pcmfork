@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Segoe UI", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --win-bg: #f0f0f0;
+  --win-panel: #ffffff;
+  --win-border: #d1d1d1;
+  --win-accent: #0078d4; /* Windows Blue */
+  --win-text: #202020;
+  --win-text-secondary: #505050;
+}
+
+body {
+  background-color: #c0c0c0; /* Classic Windows Grey */
+  color: var(--win-text);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+/* Classic Window Styling */
+.window-container {
+  background: var(--win-bg);
+  border: 1px solid #808080;
+  box-shadow: inset 1px 1px #fff, 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+.title-bar {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: white;
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.menu-bar {
+  background: var(--win-bg);
+  border-bottom: 1px solid var(--win-border);
+  padding: 2px 10px;
+  display: flex;
+  gap: 15px;
+  font-size: 11px;
+}
+
+.menu-item {
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.menu-item:hover {
+  background: #0078d4;
+  color: white;
+}
+
+.status-bar {
+  background: var(--win-bg);
+  border-top: 1px solid var(--win-border);
+  padding: 2px 10px;
+  font-size: 11px;
+  display: flex;
+  gap: 20px;
+  color: var(--win-text-secondary);
+}
+
+/* Controls */
+.win-button {
+  background: #e1e1e1;
+  border: 1px solid #adadad;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.win-button:hover {
+  background: #e5f1fb;
+  border-color: #0078d4;
+}
+
+.win-button:active {
+  background: #cce4f7;
+  border-color: #005499;
+}
+
+.win-button:disabled {
+  color: #808080;
+  border-color: #d9d9d9;
+  background: #f0f0f0;
+  cursor: not-allowed;
+}
+
+.win-panel {
+  background: white;
+  border: 1px solid var(--win-border);
+  padding: 10px;
+}
+
+.win-input {
+  border: 1px solid #adadad;
+  padding: 2px 5px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.win-label {
+  font-size: 11px;
+  color: var(--win-text-secondary);
+  font-weight: 600;
+}

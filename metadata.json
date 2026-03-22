@@ -1,0 +1,5 @@
+{
+  "name": "PCM Hammer Web",
+  "description": "A web-based interface for General Motors VPW OBD2 Powertrain Control Modules (PCMs) tuning and logging.",
+  "requestFramePermissions": []
+}
