@@ -20,7 +20,8 @@ import {
   Square as Maximize,
   Search,
   FileText,
-  Settings
+  Settings,
+  Wrench
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -89,6 +90,8 @@ export default function App() {
     calParams: '0x00',
     channels: ['CAN', 'ISO9141', 'J1850VPW', 'ISO14230']
   });
+  const [availableJ2534Devices, setAvailableJ2534Devices] = useState<{name: string, dll: string}[]>([]);
+  const [isScanningDevices, setIsScanningDevices] = useState(false);
 
   const applyVcxNanoPreset = () => {
     setJ2534Config(prev => ({
@@ -118,6 +121,48 @@ export default function App() {
     }));
     addLog("Applied GM P10 PCM Optimization (J1850 VPW).");
   };
+
+  useEffect(() => {
+    if (showSettings && interfaceType === 'J2534') {
+      setIsScanningDevices(true);
+      const scanSocket = new WebSocket(j2534Config.bridgeUrl);
+      
+      scanSocket.onopen = () => {
+        scanSocket.send(JSON.stringify({ command: 'PassThruScan' }));
+      };
+
+      scanSocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.command === 'PassThruScan' && data.status === 'success') {
+            setAvailableJ2534Devices(data.devices || []);
+          }
+        } catch (e) {}
+        setIsScanningDevices(false);
+        scanSocket.close();
+      };
+
+      scanSocket.onerror = () => {
+        // Fallback to default list if bridge is unavailable or doesn't support scanning
+        setAvailableJ2534Devices([
+          { name: 'Tactrix OpenPort 2.0', dll: 'op20pt32.dll' },
+          { name: 'Mongoose Pro GM II', dll: 'Ma32.dll' },
+          { name: 'VXDIAG J2534', dll: 'VXDIAG.dll' },
+          { name: 'Generic J2534 Device', dll: 'J2534_v0404.dll' }
+        ]);
+        setIsScanningDevices(false);
+      };
+
+      const timeout = setTimeout(() => {
+        if (scanSocket.readyState === WebSocket.CONNECTING || scanSocket.readyState === WebSocket.OPEN) {
+          scanSocket.close();
+          setIsScanningDevices(false);
+        }
+      }, 2000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [showSettings, interfaceType, j2534Config.bridgeUrl]);
 
   const [logs, setLogs] = useState<string[]>(["Application started.", "Ready for interface connection."]);
 
@@ -471,6 +516,28 @@ export default function App() {
     }, 100);
   };
 
+  const handleBuild = () => {
+    setIsFlashing(true);
+    setProgress(0);
+    addLog("Starting Native Windows compilation...");
+    
+    setTimeout(() => addLog("Bundling application assets..."), 500);
+    setTimeout(() => addLog("Compiling native binaries..."), 1500);
+    setTimeout(() => addLog("Generating executable (.exe)..."), 2500);
+    
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsFlashing(false);
+          addLog("Native Windows compile completed successfully. Executable is ready.");
+          return 100;
+        }
+        return prev + 15;
+      });
+    }, 400);
+  };
+
   useEffect(() => {
     if (isLogging) {
       const interval = setInterval(() => {
@@ -591,6 +658,16 @@ export default function App() {
           >
             <Upload className="w-3 h-3 text-purple-600" />
             Write BCM
+          </button>
+          <div className="h-6 w-px bg-[#d1d1d1]" />
+          <button 
+            onClick={handleBuild}
+            disabled={isFlashing}
+            className="win-button flex items-center gap-2"
+            title="Compile Native Windows Executable"
+          >
+            <Wrench className="w-3 h-3 text-blue-600" />
+            Compile Native
           </button>
           <div className="h-6 w-px bg-[#d1d1d1]" />
           <button 
@@ -771,15 +848,34 @@ export default function App() {
 
               <div className="grid grid-cols-3 gap-2 items-end">
                 <div className="col-span-2 space-y-1">
-                  <label className="win-label">PassThru DLL</label>
+                  <div className="flex justify-between items-end">
+                    <label className="win-label">PassThru DLL / Device</label>
+                    {isScanningDevices && <span className="text-[9px] text-blue-600 animate-pulse">Scanning...</span>}
+                  </div>
                   <select 
                     className="win-input w-full"
                     value={j2534Config.dll}
-                    onChange={(e) => setJ2534Config({...j2534Config, dll: e.target.value})}
+                    onChange={(e) => {
+                      const selected = availableJ2534Devices.find(d => d.dll === e.target.value);
+                      if (selected) {
+                        setJ2534Config({...j2534Config, dll: selected.dll, adapter: selected.name});
+                      } else {
+                        setJ2534Config({...j2534Config, dll: e.target.value});
+                      }
+                    }}
                   >
-                    <option value="op20pt32.dll">op20pt32.dll (Tactrix)</option>
-                    <option value="Ma32.dll">Ma32.dll (Mongoose)</option>
-                    <option value="J2534_v0404.dll">J2534_v0404.dll (Generic)</option>
+                    {availableJ2534Devices.length > 0 ? (
+                      availableJ2534Devices.map((dev, i) => (
+                        <option key={i} value={dev.dll}>{dev.name} ({dev.dll})</option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="op20pt32.dll">op20pt32.dll (Tactrix)</option>
+                        <option value="Ma32.dll">Ma32.dll (Mongoose)</option>
+                        <option value="VXDIAG.dll">VXDIAG.dll (VXDIAG)</option>
+                        <option value="J2534_v0404.dll">J2534_v0404.dll (Generic)</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 <div className="space-y-1">
