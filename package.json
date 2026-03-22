@@ -23,7 +23,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "start": "electron .",
+    "build:native": "node-gyp rebuild",
+    "dist": "npm run build && electron-builder"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
