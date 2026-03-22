@@ -123,8 +123,11 @@ export default function App() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     if (showSettings && interfaceType === 'J2534') {
       setIsScanningDevices(true);
+      setAvailableJ2534Devices([]); // Clear existing list while scanning
+      
       const scanSocket = new WebSocket(j2534Config.bridgeUrl);
       
       scanSocket.onopen = () => {
@@ -134,33 +137,55 @@ export default function App() {
       scanSocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.command === 'PassThruScan' && data.status === 'success') {
-            setAvailableJ2534Devices(data.devices || []);
+          if (data.command === 'PassThruScan' && data.status === 'success' && isMounted) {
+            const devices = data.devices || [];
+            setAvailableJ2534Devices(devices);
+            
+            // Auto-select first device if current is not in the list
+            if (devices.length > 0 && !devices.some((d: any) => d.dll === j2534Config.dll)) {
+              setJ2534Config(prev => ({...prev, dll: devices[0].dll, adapter: devices[0].name}));
+            }
           }
         } catch (e) {}
-        setIsScanningDevices(false);
+        if (isMounted) setIsScanningDevices(false);
         scanSocket.close();
       };
 
       scanSocket.onerror = () => {
-        // Fallback to default list if bridge is unavailable or doesn't support scanning
-        setAvailableJ2534Devices([
-          { name: 'Tactrix OpenPort 2.0', dll: 'op20pt32.dll' },
-          { name: 'Mongoose Pro GM II', dll: 'Ma32.dll' },
-          { name: 'VXDIAG J2534', dll: 'VXDIAG.dll' },
-          { name: 'Generic J2534 Device', dll: 'J2534_v0404.dll' }
-        ]);
-        setIsScanningDevices(false);
+        // Fallback to simulated scan delay if bridge is unavailable
+        setTimeout(() => {
+          if (isMounted) {
+            const fallbackDevices = [
+              { name: 'Tactrix OpenPort 2.0', dll: 'op20pt32.dll' },
+              { name: 'Mongoose Pro GM II', dll: 'Ma32.dll' },
+              { name: 'VXDIAG J2534', dll: 'VXDIAG.dll' },
+              { name: 'Scanmatik 2 PRO', dll: 'sm2_j2534.dll' },
+              { name: 'OBDLink EX', dll: 'obdlink.dll' },
+              { name: 'Generic J2534 Device', dll: 'J2534_v0404.dll' }
+            ];
+            setAvailableJ2534Devices(fallbackDevices);
+            
+            // Auto-select first device if current is not in the list
+            if (!fallbackDevices.some(d => d.dll === j2534Config.dll)) {
+              setJ2534Config(prev => ({...prev, dll: fallbackDevices[0].dll, adapter: fallbackDevices[0].name}));
+            }
+            
+            setIsScanningDevices(false);
+          }
+        }, 1500);
       };
 
       const timeout = setTimeout(() => {
         if (scanSocket.readyState === WebSocket.CONNECTING || scanSocket.readyState === WebSocket.OPEN) {
           scanSocket.close();
-          setIsScanningDevices(false);
+          if (isMounted) setIsScanningDevices(false);
         }
       }, 2000);
 
-      return () => clearTimeout(timeout);
+      return () => {
+        isMounted = false;
+        clearTimeout(timeout);
+      };
     }
   }, [showSettings, interfaceType, j2534Config.bridgeUrl]);
 
@@ -855,6 +880,7 @@ export default function App() {
                   <select 
                     className="win-input w-full"
                     value={j2534Config.dll}
+                    disabled={isScanningDevices}
                     onChange={(e) => {
                       const selected = availableJ2534Devices.find(d => d.dll === e.target.value);
                       if (selected) {
@@ -864,7 +890,9 @@ export default function App() {
                       }
                     }}
                   >
-                    {availableJ2534Devices.length > 0 ? (
+                    {isScanningDevices ? (
+                      <option value={j2534Config.dll}>Scanning for J2534 devices...</option>
+                    ) : availableJ2534Devices.length > 0 ? (
                       availableJ2534Devices.map((dev, i) => (
                         <option key={i} value={dev.dll}>{dev.name} ({dev.dll})</option>
                       ))
