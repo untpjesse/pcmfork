@@ -25,7 +25,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "start": "electron .",
-    "build:native": "node-gyp rebuild",
+    "build:native": "electron-rebuild",
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {

@@ -19,17 +19,16 @@ if %errorlevel% neq 0 (
 
 echo [2/4] Installing NPM dependencies...
 call npm install
-call npm install electron electron-builder node-gyp --save-dev
+call npm install electron electron-builder node-gyp @electron/rebuild --save-dev
 
-echo [3/4] Building Native J2534 C++ Addon...
+echo [3/4] Building Native J2534 C++ Addon for Electron...
 call npm run build:native
 if %errorlevel% neq 0 (
     color 0E
     echo.
     echo [WARNING] Native C++ Addon failed to build!
-    echo This usually means you are missing Windows Build Tools or Python.
-    echo You can install them by running this command in an Administrator PowerShell:
-    echo npm install --global windows-build-tools
+    echo This usually means you are missing Visual Studio C++ Build Tools or Python.
+    echo Please download and install them from Microsoft and Python.org.
     echo.
     echo The app will still start, but native J2534 features may not work.
     pause
